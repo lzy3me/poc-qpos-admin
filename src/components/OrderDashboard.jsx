@@ -6,15 +6,15 @@ export default function OrderDashboard(props) {
   const [orders, setOrders] = useState([]);
 
   useEffect(() => {
-    socket.connect();
-
     socket.on('connect', () => {
       console.log('Connected to server');
       socket.emit('admin-join', 'admin1');
+      fetchOrders();
     });
 
     socket.on('order-created', (data) => {
       alert(`New Order Received: Table ${data.tableNumber}`);
+      fetchOrders();
     });
 
     socket.on('disconnect', () => {
@@ -34,6 +34,16 @@ export default function OrderDashboard(props) {
     setOrders(response.data);
   }
 
+  const handleCompleteOrder = async (orderId) => {
+    await api.put(`/admin/order/${orderId}`, { status: 'completed' });
+    fetchOrders();
+  }
+
+  const handleCancelOrder = async (orderId) => {
+    await api.put(`/admin/order/${orderId}`, { status: 'cancelled' });
+    fetchOrders();
+  }
+
   const mappingItemName = (item) => {
     return (
       <span>
@@ -47,7 +57,11 @@ export default function OrderDashboard(props) {
       <button onClick={fetchOrders}>Fetch Orders</button>
       <ul>
         {orders.map((order) => (
-          <li key={order._id}>Table {order.tableNumber}: {order.items.map((item) => mappingItemName(item))}</li>
+          <li key={order._id}>
+            Table {order.tableNumber}: {order.items.map((item) => mappingItemName(item))}&nbsp;
+            <button onClick={() => handleCompleteOrder(order._id)}>Complete</button>&nbsp;
+            <button onClick={() => handleCancelOrder(order._id)}>Cancel</button>
+          </li>
         ))}
       </ul>
     </div>
