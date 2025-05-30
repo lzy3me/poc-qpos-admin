@@ -1,9 +1,33 @@
 import { useEffect, useState } from 'react';
-import io from 'socket.io-client';
+import { socket } from '../socket';
 import api from '../api';
 
 export default function OrderDashboard(props) {
   const [orders, setOrders] = useState([]);
+
+  useEffect(() => {
+    socket.connect();
+
+    socket.on('connect', () => {
+      console.log('Connected to server');
+      socket.emit('admin-join', 'admin1');
+    });
+
+    socket.on('order-created', (data) => {
+      alert(`New Order Received: Table ${data.tableNumber}`);
+    });
+
+    socket.on('disconnect', () => {
+      console.log('Disconnected from server');
+      socket.emit('admin-leave', 'admin1');
+    });
+
+    return () => {
+      socket.off('order-created');
+      socket.off('connect');
+      socket.off('disconnect');
+    }
+  }, []);
 
   const fetchOrders = async () => {
     const response = await api.get('/order');
@@ -20,7 +44,6 @@ export default function OrderDashboard(props) {
 
   return (
     <div>
-      <h1>Order Dashboard</h1>
       <button onClick={fetchOrders}>Fetch Orders</button>
       <ul>
         {orders.map((order) => (
